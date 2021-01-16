@@ -5,28 +5,29 @@ date: "16/01/2021"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
-```
+
 
 
 ## Loading and processing data
 
 First we read in the data from csv.
 
-```{r readdata}
+
+```r
 data <- read.csv("activity.csv")
 ```
 
 Then convert the "date" column to date format.
 
-```{r formatdate}
+
+```r
 data$date <- as.Date(data$date, format="%Y-%m-%d")
 ```
 
 And create a copy of the data with NA values removed.
 
-```{r removena}
+
+```r
 data_rmna <- data[!is.na(data$steps),]
 ```
 
@@ -35,7 +36,8 @@ data_rmna <- data[!is.na(data$steps),]
 
 Calculate the total number of steps taken each day (group and summarise the data by date).
 
-```{r groupbydate}
+
+```r
 library(dplyr)
 library(tidyr)
 data_rmna_date <- data_rmna %>%
@@ -45,7 +47,8 @@ data_rmna_date <- data_rmna %>%
 
 Plot a histogram of the number of steps taken each day.
 
-```{r dailystepsplot, fig.height=3, fig.width=6}
+
+```r
 library(ggplot2)
 ggplot(data_rmna_date, aes(x=steps)) +
   geom_histogram() +
@@ -53,21 +56,25 @@ ggplot(data_rmna_date, aes(x=steps)) +
   scale_y_continuous(name="Number of Days")
 ```
 
+<img src="PA1_template_files/figure-html/dailystepsplot-1.png" width="576" />
+
 Calculate the mean and median number of steps per day.
 
-```{r meanstepsperday}
+
+```r
 meandailysteps <- mean(data_rmna_date$steps)
 mediandailysteps <- median(data_rmna_date$steps)
 ```
 
-The mean number of steps taken per day is `r as.character(round(meandailysteps,2))` and the median is `r mediandailysteps`.
+The mean number of steps taken per day is 10766.19 and the median is 10765.
 
 
 ## Plotting daily profile of activity
 
 Create a copy of the data grouped by 5 minute interval.
 
-```{r groupbyinterval}
+
+```r
 data_rmna_interval <- data_rmna %>%
   group_by(interval) %>%
   summarise(steps=mean(steps))
@@ -75,34 +82,40 @@ data_rmna_interval <- data_rmna %>%
 
 Plot the average profile of steps across the day.
 
-```{r dailyprofileplot, fig.height=3, fig.width=6}
+
+```r
 ggplot(data_rmna_interval, aes(x=interval, y=steps)) +
   geom_line() +
   scale_x_continuous(name="5 Minute Interval") +
   scale_y_continuous(name="Number of Steps")
 ```
 
+<img src="PA1_template_files/figure-html/dailyprofileplot-1.png" width="576" />
+
 Find the five minute interval with the highest average number of steps.
 
-```{r highestinterval}
+
+```r
 highestaverageinterval <- data_rmna_interval$interval[data_rmna_interval$steps == max(data_rmna_interval$steps)]
 ```
 
-The interval with the highest average number of steps is `r highestaverageinterval`.
+The interval with the highest average number of steps is 835.
 
 
 ## Dealing with missing values
 
 Calculate the number of missing values.
-```{r countna}
+
+```r
 nacount <- sum(is.na(data$steps))
 ```
 
-There are `r nacount` missing values in the data.
+There are 2304 missing values in the data.
 
 Replace missing values with the mean for that interval.
 
-```{r fillna}
+
+```r
 names(data_rmna_interval) <- c("interval","intervalaveragesteps")
 datafilled <- merge(data, data_rmna_interval, by="interval")
 datafilled$steps[is.na(datafilled$steps)] <- datafilled$intervalaveragesteps[is.na(datafilled$steps)]
@@ -111,7 +124,8 @@ datafilled <- datafilled[,c("steps","date","interval")]
 
 Recalculate the mean number of steps taken each day with the filled values, and plot a new histogram of the number of steps taken each day.
 
-```{r dailystepsplotfilled, fig.height=3, fig.width=6}
+
+```r
 datafilled_date <- datafilled %>%
   group_by(date) %>%
   summarise(steps=sum(steps))
@@ -120,19 +134,24 @@ ggplot(datafilled_date, aes(x=steps)) +
   geom_histogram() +
   scale_x_continuous(name="Number of Steps") +
   scale_y_continuous(name="Number of Days")
+```
 
+<img src="PA1_template_files/figure-html/dailystepsplotfilled-1.png" width="576" />
+
+```r
 meandailystepsfilled <- mean(datafilled_date$steps)
 mediandailystepsfilled <- median(datafilled_date$steps)
 ```
 
-After filling the missing values with the average for that interval, the new mean steps per day is `r as.character(round(meandailystepsfilled,2))` and the median is `r as.character(round(mediandailystepsfilled,0))`. The infilling process has had minimal impact on the mean and median values.
+After filling the missing values with the average for that interval, the new mean steps per day is 10766.19 and the median is 10766. The infilling process has had minimal impact on the mean and median values.
 
 
 ## Exploring weekday/weekend differences
 
 Create a new factor variable indicating whether each observation was on a weekday or weekend.
 
-```{r addweekdayfactor}
+
+```r
 datafilled$weekday <- weekdays(datafilled$date)
 datafilled$daytype <- "Weekday"
 datafilled$daytype[datafilled$weekday == "Saturday" | datafilled$weekday == "Sunday"] <- "Weekend"
@@ -141,7 +160,8 @@ datafilled$daytype <- as.factor(datafilled$daytype)
 
 Create a panel plot showing the daily profile of steps on weekdays and weekends separately.
 
-```{r weekdayplot, fig.height=6, fig.width=6}
+
+```r
 library(gridExtra)
 
 datafilled_interval <- datafilled %>%
@@ -154,5 +174,7 @@ ggplot(datafilled_interval, aes(x=interval, y=steps)) +
   scale_y_continuous(name="Number of Steps") +
   facet_grid(rows=vars(daytype))
 ```
+
+<img src="PA1_template_files/figure-html/weekdayplot-1.png" width="576" />
 
 The weekday activity is more concentrated in morning and evening peaks, while weekend activity is more evenly spread across the day.
